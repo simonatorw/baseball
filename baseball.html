@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Baseball</title>
+		<style>
+			body {
+				background-color: #000;
+				color: #ddd;
+				font-family: verdana, sans-serif;
+				font-size: 12px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				height: 100vh;
+				margin: 0;
+			}
+			#container {
+				display: inline-flex;
+				flex-flow: column wrap;
+				background-color: #390;
+				border-radius: 6px;
+				padding: 20px;
+				align-items: center;
+			}
+			#scoreboard {
+				background-color: darkgreen;
+				display: inline-flex;
+				padding: 6px 0 0 6px;
+				font-size: 1.2em;
+			}
+			#homeTeam, #visitorTeam, .head {
+				color: lightgreen;
+				margin: 0 6px 6px 0;
+				padding: 3px 0;
+			}
+			.head {
+				text-align: center;
+			}
+			.content {
+				background-color: #000;
+				margin: 0 6px 6px 0;
+				padding: 3px;
+				text-align: right;
+			}
+			#innings {
+				display: inline-flex;
+			}
+			#totals {
+				margin-left: 6px;
+				display: inline-flex;
+			}
+			div.total:first-child {
+				margin-left: 6px;
+			}
+			#field {
+				background-color: brown;
+				display: inline-flex;
+				flex-flow: row wrap;
+				padding: 10px 0 0 10px;
+				flex: 0 0 60px;
+				transform: rotate(45deg);
+				width: 60px;
+				margin-top: 20px;
+			}
+			.base {
+				background-color: #fff;
+				width: 20px;
+				height: 20px;
+				margin: 0 10px 10px 0;
+			}
+			.base.home {
+				background-color: #aaa;
+			}
+			.current {
+				background-color: orange;
+				color: #000;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="container">
+			<div id="scoreboard"></div>
+			<div id="field">
+				<div id="base-2" class="base"></div>
+				<div id="base-1" class="base"></div>
+				<div id="base-3" class="base"></div>
+				<div id="home" class="base home"></div>
+			</div>
+		</div>
+		<script>
+			class Baseball {
+				constructor(home = 'SF', visitor = 'NYY') {
+					this.sb = [];
+					this.home = {
+						name: home,
+						totals: [0, 0, 0]
+					};
+					this.visitor = {
+						name: visitor,
+						totals: [0, 0, 0]
+					};
+					this.balls = 0;
+					this.strikes = 0;
+					this.outs = 0;
+					this.team = 'home';
+					this.inning = 0;
+					this.totalCol = 0;
+					this.prevClass = '';
+					this.prevInning = 0;
+					this.prevTeam = 'home';
+					this.init();
+				}
+				setScore(score) {
+					if (this.sb[this.inning]) {
+						this.sb[this.inning][this.team] = score;
+					} else {
+						this.sb[this.inning] = {};
+						this.sb[this.inning][this.team] = score;
+					}
+					//console.log(this.sb);
+				}
+				setRuns(runs) {
+					this.totalCol = 0;
+					this[this.team].totals[0] = runs;
+				}
+				score() {
+					this.setScore(1 + (this.sb[this.inning] && this.sb[this.inning][this.team] ? this.sb[this.inning][this.team] : 0));
+					this.setRuns(1 + this[this.team].totals[0]);
+					this.renderScoreboard();
+					this.renderTotal();					
+				}
+				pitch() {
+					return Math.floor(Math.random() * 4);
+				}
+				bat(pitch) {
+					return pitch;
+				}
+				isOver() {
+					return this.inning > 8 && this.home.totals[0] !== this.visitor.totals[0];
+				}
+				start() {
+					if (!this.isOver()) {						
+						this.renderHighlight();
+						const result = this.bat(this.pitch());
+						if (!result) {
+							this.score();
+						}
+						if (this.team === 'home') {
+							this.team = 'visitor';
+							setTimeout(() => {
+								this.start();
+							}, 600);
+						} else {
+							this.team = 'home';
+							this.inning++;
+							setTimeout(() => {
+								this.start();
+							}, 600);
+						}
+					}
+				}
+				renderHighlight() {
+					if (document.getElementsByClassName('inning')[this.inning]) {
+						const $container = document.getElementsByClassName('inning')[this.inning];
+						if (this.prevClass) {
+							const $container = document.getElementsByClassName('inning')[this.prevInning];
+							
+							$container.getElementsByClassName(`content ${this.prevTeam}`)[0].className = this.prevClass;
+						}
+						this.prevClass = $container.getElementsByClassName(`content ${this.team}`)[0].className;
+						this.prevInning = this.inning;
+						this.prevTeam = this.team;
+						$container.getElementsByClassName(`content ${this.team}`)[0].className = `${this.prevClass} current`;
+					} else {
+						const $container = document.getElementById('innings');
+						const tpl = `<div class="inning">
+							<div class="head">${this.inning + 1}</div>
+							<div class="content home">0</div>
+							<div class="content visitor">0</div>
+						</div>`;	
+
+						$container.insertAdjacentHTML('beforeend', tpl);
+						this.renderHighlight();
+					}
+				}
+				renderScoreboard() {
+					if (this.sb.length) {
+						if (document.getElementsByClassName('inning')[this.sb.length - 1]) {
+							const $container = document.getElementsByClassName('inning')[this.sb.length - 1];
+							const obj = this.sb[this.sb.length - 1];
+							
+							if (obj[this.team]) {
+								$container.getElementsByClassName(`content ${this.team}`)[0].innerHTML = obj[this.team];
+							}
+						} else {
+							const $container = document.getElementById('innings');
+							const obj = this.sb[this.sb.length - 1];
+							const tpl = `<div class="inning">
+								<div class="head">${this.sb.length}</div>
+								<div class="content home">${obj.home ? obj.home : 0}</div>
+								<div class="content visitor">${obj.visitor ? obj.visitor : 0}</div>
+							</div>`;	
+
+							$container.insertAdjacentHTML('beforeend', tpl);
+						}
+					} else {
+						const $container = document.getElementById('scoreboard');
+						let tpl =`<div id="teams">
+							<div class="head">&nbsp;</div>
+							<div id="homeTeam">${this.home.name}</div>
+							<div id="visitorTeam">${this.visitor.name}</div>
+						</div>`;
+						
+						for (let i = 1; i < 10; i++) {
+							tpl = `${tpl}<div class="inning">
+								<div class="head">${i}</div>
+								<div class="content home">0</div>
+								<div class="content visitor">0</div>
+							</div>`;
+						}
+						tpl = `<div id="innings">${tpl}</div>`;
+						$container.insertAdjacentHTML('beforeend', tpl);
+					}
+				}
+				renderTotal() {		
+					if (this.sb.length) {
+						const $container = document.getElementsByClassName('total')[this.totalCol];
+						
+						if (this[this.team].totals[this.totalCol]) {
+							$container.getElementsByClassName(`content ${this.team}`)[0].innerHTML = this[this.team].totals[this.totalCol];
+						}						
+					} else {
+						const $container = document.getElementById('scoreboard');
+						const list = ['R', 'H', 'E'];
+						const max = list.length;
+						let tpl =``;
+						
+						for (let i = 0; i < max; i++) {
+							tpl = `${tpl}<div class="total">
+								<div class="head">${list[i]}</div>
+								<div class="content home">0</div>
+								<div class="content visitor">0</div>
+							</div>`;
+						}
+						tpl = `<div id="totals">${tpl}</div>`;
+						$container.insertAdjacentHTML('beforeend', tpl);
+					}
+				}
+				init() {
+					this.renderScoreboard();
+					this.renderTotal();
+					this.start();
+				}
+			}
+			new Baseball('NYY', 'Boston');
+		</script>
+	</body>
+</html>
