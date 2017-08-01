@@ -23,13 +23,17 @@
 				padding: 20px;
 				align-items: center;
 			}
-			#scoreboard {
+			.board {
 				background-color: darkgreen;
 				display: inline-flex;
 				padding: 6px 0 0 6px;
 				font-size: 1.2em;
 			}
-			#homeTeam, #visitorTeam, .head {
+			#current {
+				width: 100%;
+				justify-content: space-between;
+			}
+			#homeTeam, #visitorTeam, .head, .currentLabel {
 				color: lightgreen;
 				margin: 0 6px 6px 0;
 				padding: 3px 0;
@@ -61,7 +65,7 @@
 				flex: 0 0 60px;
 				transform: rotate(45deg);
 				width: 60px;
-				margin-top: 20px;
+				margin: 20px 0;
 			}
 			.base {
 				background-color: #fff;
@@ -76,17 +80,22 @@
 				background-color: orange;
 				color: #000;
 			}
+			.col {
+				display: inline-flex;
+				flex: 0;
+			}
 		</style>
 	</head>
 	<body>
 		<div id="container">
-			<div id="scoreboard"></div>
+			<div id="scoreboard" class="board"></div>
 			<div id="field">
 				<div id="base-2" class="base"></div>
 				<div id="base-1" class="base"></div>
 				<div id="base-3" class="base"></div>
 				<div id="home" class="base home"></div>
 			</div>
+			<div id="current" class="board"></div>
 		</div>
 		<script>
 			class Baseball {
@@ -145,18 +154,55 @@
 						const result = this.bat(this.pitch());
 						if (!result) {
 							this.score();
-						}
-						if (this.team === 'home') {
-							this.team = 'visitor';
-							setTimeout(() => {
-								this.start();
-							}, 600);
+						} else if (result === 1) {
+							this.balls++;
+							this.renderCurrent(1);
+							if (this.balls > 3) {
+								this.balls = 0;
+								this.strikes++;
+								this.renderCurrent(0);
+								setTimeout(() => {
+									this.renderCurrent(1);
+								}, 300);
+							}
 						} else {
-							this.team = 'home';
-							this.inning++;
+							this.strikes++;
+							this.renderCurrent(0);
+						}
+						if (this.strikes > 2) {
+							this.strikes = 0;
+							this.balls = 0;
+							this.outs++;
+							this.renderCurrent(2);
+							setTimeout(() => {
+								this.renderCurrent(0, 1);
+							}, 300);							
+						}
+						if (this.outs > 2) {
+							if (this.team === 'home') {
+								this.team = 'visitor';
+								this.outs = 0;
+								setTimeout(() => {
+									this.renderCurrent(2);
+								}, 300);
+								setTimeout(() => {
+									this.start();
+								}, 600);
+							} else {
+								this.team = 'home';
+								this.outs = 0;
+								setTimeout(() => {
+									this.renderCurrent(2);
+								}, 300);
+								this.inning++;
+								setTimeout(() => {
+									this.start();
+								}, 600);
+							}
+						} else {
 							setTimeout(() => {
 								this.start();
-							}, 600);
+							}, 300);						
 						}
 					}
 				}
@@ -247,9 +293,34 @@
 						$container.insertAdjacentHTML('beforeend', tpl);
 					}
 				}
+				renderCurrent() {		
+					if (this.sb.length) {
+						const list = ['strikes', 'balls', 'outs'];
+						for (let i = arguments.length; i--;) {
+							//console.log(arguments[i]);
+							const $container = document.getElementsByClassName('col')[arguments[i]];
+						
+							$container.getElementsByClassName('content')[0].innerHTML = this[list[arguments[i]]];
+						}
+					} else {
+						const $container = document.getElementById('current');
+						const list = ['Strike', 'Ball', 'Out'];
+						const max = list.length;
+						let tpl =``;
+						
+						for (let i = 0; i < max; i++) {
+							tpl = `${tpl}<div class="col">
+								<div class="currentLabel">${list[i]}</div>
+								<div class="content">0</div>
+							</div>`;
+						}
+						$container.innerHTML = tpl;
+					}
+				}				
 				init() {
 					this.renderScoreboard();
 					this.renderTotal();
+					this.renderCurrent();
 					this.start();
 				}
 			}
