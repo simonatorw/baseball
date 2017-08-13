@@ -12,7 +12,7 @@
 				display: flex;
 				justify-content: center;
 				align-items: center;
-				height: 100vh;
+				height: 90vh;
 				margin: 0;
 			}
 			#container {
@@ -31,6 +31,7 @@
 			}
 			#current {
 				width: 100%;
+				box-sizing: border-box;
 				justify-content: space-between;
 			}
 			#homeTeam, #visitorTeam, .head, .currentLabel {
@@ -84,6 +85,26 @@
 				display: inline-flex;
 				flex: 0;
 			}
+			#players {
+				width: 100%;
+				margin-top: 10px;
+			}
+			.grid {
+				border-collapse: collapse;
+			}
+			.cell {
+				padding: 0 10px 3px 0;
+			}
+			.playerLabel {
+				color: #630;
+			}
+			.statusValue {
+				color: #fff;
+			}
+			.statusLabel {
+				color: #630;
+				font-weight: bold;
+			}
 		</style>
 	</head>
 	<body>
@@ -96,19 +117,23 @@
 				<div id="home" class="base home"></div>
 			</div>
 			<div id="current" class="board"></div>
+			<div id="players"></div>
 		</div>
+		<script src="teams.js"></script>
 		<script>
 			class Baseball {
-				constructor(home = 'SF', visitor = 'NYY') {
+				constructor(home, visitor) {
 					this.sb = [];
 					this.home = {
-						name: home,
-						totals: [0, 0, 0]
+						totals: [0, 0, 0],
+						batterIndex: -1
 					};
+					this.home = Object.assign({}, this.home, home);
 					this.visitor = {
-						name: visitor,
-						totals: [0, 0, 0]
+						totals: [0, 0, 0],
+						batterIndex: -1
 					};
+					this.visitor = Object.assign({}, this.visitor, visitor);
 					this.balls = 0;
 					this.strikes = 0;
 					this.outs = 0;
@@ -148,6 +173,17 @@
 				isOver() {
 					return this.inning > 8 && this.home.totals[0] !== this.visitor.totals[0];
 				}
+				nextBatter() {
+					if (this[this.team].batterIndex < this[this.team].starters.length - 1) {
+						this[this.team].batterIndex++;
+					} else {
+						this[this.team].batterIndex = 0;
+					}
+					this.renderPlayers(1);
+				}
+				nextPitcher() {
+					this.renderPlayers(0);
+				}
 				start() {
 					if (!this.isOver()) {						
 						this.renderHighlight();
@@ -173,9 +209,13 @@
 							this.strikes = 0;
 							this.balls = 0;
 							this.outs++;
+							let tmp = this.outs;
 							this.renderCurrent(2);
 							setTimeout(() => {
 								this.renderCurrent(0, 1);
+								if (tmp < 3) {
+									this.nextBatter();
+								}
 							}, 300);							
 						}
 						if (this.outs > 2) {
@@ -186,6 +226,8 @@
 									this.renderCurrent(2);
 								}, 300);
 								setTimeout(() => {
+									this.nextPitcher();
+									this.nextBatter();
 									this.start();
 								}, 600);
 							} else {
@@ -196,6 +238,8 @@
 								}, 300);
 								this.inning++;
 								setTimeout(() => {
+									this.nextPitcher();
+									this.nextBatter();
 									this.start();
 								}, 600);
 							}
@@ -254,8 +298,8 @@
 						const $container = document.getElementById('scoreboard');
 						let tpl =`<div id="teams">
 							<div class="head">&nbsp;</div>
-							<div id="homeTeam">${this.home.name}</div>
-							<div id="visitorTeam">${this.visitor.name}</div>
+							<div id="homeTeam" style="color: ${this.home.color}">${this.home.team}</div>
+							<div id="visitorTeam" style="color: ${this.visitor.color}">${this.visitor.team}</div>
 						</div>`;
 						
 						for (let i = 1; i < 10; i++) {
@@ -316,15 +360,57 @@
 						}
 						$container.innerHTML = tpl;
 					}
-				}				
+				}
+				renderPlayers(cond) {		
+					if (this.sb.length) {
+						const $container = document.getElementsByClassName('grid')[0];
+						
+						let pitchingTeam = 'home';
+						
+						if (this.team === 'home') {
+							pitchingTeam = 'visitor';
+						}
+						
+						switch(cond) {
+							case 0:
+								$container.getElementsByClassName('cell playerValue')[0].style.color = this[pitchingTeam].color;
+								$container.getElementsByClassName('cell playerValue')[1].style.color = this[this.team].color;
+								$container.getElementsByClassName('cell playerValue')[0].innerHTML = this[pitchingTeam].starters[this[pitchingTeam].pitcherIndex].name;
+								break;
+							case 1:
+								$container.getElementsByClassName('cell playerValue')[1].innerHTML = this[this.team].starters[this[this.team].batterIndex].name;
+						}
+				
+					} else {
+						const $container = document.getElementById('players');
+
+						let tpl =`<table class="grid">
+							<tr>
+								<td class="cell playerLabel">On the Mound</td>
+								<td class="cell playerValue" style="color: ${this.visitor.color}">${this.visitor.starters[this.visitor.pitcherIndex].name}</td>
+							</tr>
+							<tr>
+								<td class="cell playerLabel">At Bat</td>
+								<td class="cell playerValue" style="color: ${this.home.color}">${this.home.starters[this.home.pitcherIndex].name}</td>
+							</tr>
+							<tr>
+								<td class="cell statusLabel">Status</td>
+								<td class="cell statusValue">Game starting...</td>
+							</tr>					
+						</table>`;
+						
+						$container.innerHTML = tpl;
+					}
+				}								
 				init() {
 					this.renderScoreboard();
 					this.renderTotal();
 					this.renderCurrent();
+					this.renderPlayers();
 					this.start();
 				}
 			}
-			new Baseball('NYY', 'Boston');
+			new Baseball(nny, sf);
 		</script>
 	</body>
 </html>
