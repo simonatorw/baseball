@@ -105,6 +105,10 @@
 				color: #630;
 				font-weight: bold;
 			}
+			.winner {
+				background-color: #9ff;
+				color: #666;
+			}
 		</style>
 	</head>
 	<body>
@@ -142,7 +146,8 @@
 					this.totalCol = 0;
 					this.prevClass = '';
 					this.prevInning = 0;
-					this.prevTeam = 'home';
+					this.prevTeam = 'visitor';
+					this.status = 'Game started...';
 					this.init();
 				}
 				setScore(score) {
@@ -248,7 +253,23 @@
 								this.start();
 							}, 300);						
 						}
+					} else {
+						this.renderHighlightWinner();
 					}
+				}
+				renderHighlightWinner() {
+					const $container = document.getElementsByClassName('total')[0];
+					let winner = 'visitor';
+					
+					if (this.home.totals[0] > this.visitor.totals[0]) {
+						winner = 'home';
+					}
+					
+					this.status = `${this[winner].longName} wins!`; 
+					this.renderPlayers(2);				
+					
+					$container.getElementsByClassName(`content ${winner}`)[0].className = `${$container.getElementsByClassName(`content ${winner}`)[0].className} winner`;
+			
 				}
 				renderHighlight() {
 					if (document.getElementsByClassName('inning')[this.inning]) {
@@ -379,6 +400,10 @@
 								break;
 							case 1:
 								$container.getElementsByClassName('cell playerValue')[1].innerHTML = this[this.team].starters[this[this.team].batterIndex].name;
+								break;
+							case 2:
+								$container.getElementsByClassName('cell statusValue')[0].style.color = '#9ff';
+								$container.getElementsByClassName('cell statusValue')[0].innerHTML = this.status;
 						}
 				
 					} else {
@@ -395,7 +420,7 @@
 							</tr>
 							<tr>
 								<td class="cell statusLabel">Status</td>
-								<td class="cell statusValue">Game starting...</td>
+								<td class="cell statusValue">${this.status}</td>
 							</tr>					
 						</table>`;
 						
