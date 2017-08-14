@@ -112,17 +112,17 @@
 		</style>
 	</head>
 	<body>
-		<div id="container">
-			<div id="scoreboard" class="board"></div>
-			<div id="field">
+		<section id="container">
+			<section id="scoreboard" class="board"></section>
+			<section id="field">
 				<div id="base-2" class="base"></div>
 				<div id="base-1" class="base"></div>
 				<div id="base-3" class="base"></div>
 				<div id="home" class="base home"></div>
-			</div>
-			<div id="current" class="board"></div>
-			<div id="players"></div>
-		</div>
+			</section>
+			<section id="current" class="board"></section>
+			<section id="players"></section>
+		</section>
 		<script src="teams.js"></script>
 		<script>
 			class Baseball {
@@ -130,7 +130,7 @@
 					this.sb = [];
 					this.home = {
 						totals: [0, 0, 0],
-						batterIndex: -1
+						batterIndex: 0
 					};
 					this.home = Object.assign({}, this.home, home);
 					this.visitor = {
@@ -170,10 +170,21 @@
 					this.renderTotal();					
 				}
 				pitch() {
-					return Math.floor(Math.random() * 4);
+					return Math.floor(Math.random() * 3);
 				}
-				bat(pitch) {
-					return pitch;
+				bat(badPitch) {				
+					const result = Math.round(Math.random() * 1000)/1000;
+					//console.log(this[this.team].starters[indx].ba, result);
+					let name = this[this.team].starters[this[this.team].batterIndex].name;
+					console.log(this.outs, name);					
+					if (result < this[this.team].starters[this[this.team].batterIndex].ba && !badPitch) {
+						console.log(result, this[this.team].starters[this[this.team].batterIndex].ba, name);
+						return badPitch;
+					} else if (!badPitch) {
+						return 1;
+					} else {
+						return badPitch;
+					}
 				}
 				isOver() {
 					return this.inning > 8 && this.home.totals[0] !== this.visitor.totals[0];
@@ -192,10 +203,15 @@
 				start() {
 					if (!this.isOver()) {						
 						this.renderHighlight();
-						const result = this.bat(this.pitch());
-						if (!result) {
+						const badPitch = this.bat(this.pitch());
+						if (!badPitch) {
+							this.strikes = 0;
+							this.balls = 0;							
 							this.score();
-						} else if (result === 1) {
+							this.renderCurrent(0, 1);
+							this.nextBatter();
+							console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);							
+						} else if (badPitch === 1) {
 							this.balls++;
 							this.renderCurrent(1);
 							if (this.balls > 3) {
@@ -214,20 +230,20 @@
 							this.strikes = 0;
 							this.balls = 0;
 							this.outs++;
-							let tmp = this.outs;
 							this.renderCurrent(2);
 							setTimeout(() => {
 								this.renderCurrent(0, 1);
-								if (tmp < 3) {
+								if (this.outs < 3) {
 									this.nextBatter();
+									console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);
 								}
-							}, 300);							
+							}, 200);							
 						}
 						if (this.outs > 2) {
 							if (this.team === 'home') {
 								this.team = 'visitor';
-								this.outs = 0;
 								setTimeout(() => {
+									this.outs = 0;
 									this.renderCurrent(2);
 								}, 300);
 								setTimeout(() => {
