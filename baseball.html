@@ -115,10 +115,10 @@
 		<section id="container">
 			<section id="scoreboard" class="board"></section>
 			<section id="field">
-				<div id="base-2" class="base"></div>
 				<div id="base-1" class="base"></div>
-				<div id="base-3" class="base"></div>
-				<div id="home" class="base home"></div>
+				<div id="base-0" class="base"></div>
+				<div id="base-2" class="base"></div>
+				<div id="base-3" class="base home"></div>
 			</section>
 			<section id="current" class="board"></section>
 			<section id="players"></section>
@@ -148,6 +148,7 @@
 					this.prevInning = 0;
 					this.prevTeam = 'visitor';
 					this.status = 'Game started...';
+					this.base = [0, 0, 0, 0];
 					this.init();
 				}
 				setScore(score) {
@@ -163,6 +164,14 @@
 					this.totalCol = 0;
 					this[this.team].totals[0] = runs;
 				}
+				setHits(hits) {
+					this.totalCol = 1;
+					this[this.team].totals[1] = hits;
+				}
+				baseHit() {
+					this.setHits(1 + this[this.team].totals[1]);
+					this.renderTotal();				
+				}
 				score() {
 					this.setScore(1 + (this.sb[this.inning] && this.sb[this.inning][this.team] ? this.sb[this.inning][this.team] : 0));
 					this.setRuns(1 + this[this.team].totals[0]);
@@ -174,11 +183,10 @@
 				}
 				bat(badPitch) {				
 					const result = Math.round(Math.random() * 1000)/1000;
-					//console.log(this[this.team].starters[indx].ba, result);
 					let name = this[this.team].starters[this[this.team].batterIndex].name;
-					console.log(this.outs, name);					
+					//console.log(this.outs, name);					
 					if (result < this[this.team].starters[this[this.team].batterIndex].ba && !badPitch) {
-						console.log(result, this[this.team].starters[this[this.team].batterIndex].ba, name);
+						//console.log(result, this[this.team].starters[this[this.team].batterIndex].ba, name);
 						return badPitch;
 					} else if (!badPitch) {
 						return 1;
@@ -200,6 +208,24 @@
 				nextPitcher() {
 					this.renderPlayers(0);
 				}
+				calc() {
+					const result = Math.round(Math.random() * 1000)/1000;
+					const hr = this[this.team].starters[this[this.team].batterIndex].hr / 1000;
+
+					this.baseHit();
+					
+					if (result <  hr) {
+						this.base[3] = 1;
+						this.renderField();
+						this.base[3] = 0;
+						this.score();
+					} else {
+						const i = Math.floor(Math.random() * 3);
+						this.base[i] = 1;
+						this.renderField();
+						this.base[i] = 0;						
+					}
+				}
 				start() {
 					if (!this.isOver()) {						
 						this.renderHighlight();
@@ -207,10 +233,10 @@
 						if (!badPitch) {
 							this.strikes = 0;
 							this.balls = 0;							
-							this.score();
+							this.calc();
 							this.renderCurrent(0, 1);
 							this.nextBatter();
-							console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);							
+							//console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);							
 						} else if (badPitch === 1) {
 							this.balls++;
 							this.renderCurrent(1);
@@ -235,7 +261,7 @@
 								this.renderCurrent(0, 1);
 								if (this.outs < 3) {
 									this.nextBatter();
-									console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);
+									//console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);
 								}
 							}, 200);							
 						}
@@ -245,6 +271,7 @@
 								setTimeout(() => {
 									this.outs = 0;
 									this.renderCurrent(2);
+									this.renderField();
 								}, 300);
 								setTimeout(() => {
 									this.nextPitcher();
@@ -271,6 +298,22 @@
 						}
 					} else {
 						this.renderHighlightWinner();
+					}
+				}
+				renderField() {
+					const max = this.base.length;
+					
+					for (let i = 0; i < max; i++) {
+						if (this.base[i] && i === 3) {
+							document.getElementById(`base-${i}`).style.backgroundColor = '#9ff';
+							setTimeout(() => {
+								document.getElementById(`base-${i}`).style.backgroundColor = '';
+							}, 300);
+						} else if (this.base[i]) {
+							document.getElementById(`base-${i}`).style.backgroundColor = 'orange';
+						} else {
+							document.getElementById(`base-${i}`).style.backgroundColor = '';
+						}
 					}
 				}
 				renderHighlightWinner() {
@@ -351,7 +394,7 @@
 					}
 				}
 				renderTotal() {		
-					if (this.sb.length) {
+					if (this[this.team].totals[1]) {
 						const $container = document.getElementsByClassName('total')[this.totalCol];
 						
 						if (this[this.team].totals[this.totalCol]) {
@@ -375,7 +418,7 @@
 					}
 				}
 				renderCurrent() {		
-					if (this.sb.length) {
+					if (document.getElementById('current').getElementsByClassName('col').length) {
 						const list = ['strikes', 'balls', 'outs'];
 						for (let i = arguments.length; i--;) {
 							//console.log(arguments[i]);
