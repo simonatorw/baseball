@@ -148,7 +148,8 @@
 					this.prevInning = 0;
 					this.prevTeam = 'visitor';
 					this.status = 'Game started...';
-					this.base = [0, 0, 0, 0];
+					this.base = [0, 0, 0];
+					this.animList = [];
 					this.init();
 				}
 				setScore(score) {
@@ -158,7 +159,6 @@
 						this.sb[this.inning] = {};
 						this.sb[this.inning][this.team] = score;
 					}
-					//console.log(this.sb);
 				}
 				setRuns(runs) {
 					this.totalCol = 0;
@@ -179,14 +179,14 @@
 					this.renderTotal();					
 				}
 				pitch() {
-					return Math.floor(Math.random() * 3);
+					return Math.floor(Math.random() * 6);
 				}
-				bat(badPitch) {				
+				bat(badPitch) {
 					const result = Math.round(Math.random() * 1000)/1000;
 					let name = this[this.team].starters[this[this.team].batterIndex].name;
-					//console.log(this.outs, name);					
+					
 					if (result < this[this.team].starters[this[this.team].batterIndex].ba && !badPitch) {
-						//console.log(result, this[this.team].starters[this[this.team].batterIndex].ba, name);
+			
 						return badPitch;
 					} else if (!badPitch) {
 						return 1;
@@ -208,44 +208,74 @@
 				nextPitcher() {
 					this.renderPlayers(0);
 				}
-				calc() {
+				goHome() {
+					if (!this.animList.length) {
+						this.renderHome();
+					} else {
+						this.animList.push(1);
+					}
+					this.score();				
+				}
+				calc(walk) {
 					const result = Math.round(Math.random() * 1000)/1000;
 					const hr = this[this.team].starters[this[this.team].batterIndex].hr / 1000;
 
 					this.baseHit();
 					
-					if (result <  hr) {
-						this.base[3] = 1;
-						this.renderField();
-						this.base[3] = 0;
-						this.score();
+					if (result <  hr && !walk) {
+						for (let i = 0; i < 3; i++) {
+							if (this.base[i]) {
+								this.base[i] = 0;
+								this.renderField();
+								this.goHome();
+							}
+						}
+						this.status = 'HOME RUN!!!'; 
+						this.renderPlayers(2);				
+						this.goHome();
 					} else {
-						const i = Math.floor(Math.random() * 3);
-						this.base[i] = 1;
+						let hit = 0;
+						
+						if (!walk) {
+							hit = Math.floor(Math.random() * 3);
+						}
+						
+						for (let i = 0; i < 3; i++) {
+							if (this.base[i]) {
+								this.base[i] = 0;
+								if ((hit + 1 + i) < 3) {
+									this.base[hit + 1 + i] = 1;
+									this.renderField();
+								} else {
+									this.renderField();
+									this.goHome();
+								}
+							}
+						}
+						this.base[hit] = 1;
 						this.renderField();
-						this.base[i] = 0;						
 					}
 				}
 				start() {
 					if (!this.isOver()) {						
 						this.renderHighlight();
-						const badPitch = this.bat(this.pitch());
-						if (!badPitch) {
+						const goodPitch = this.bat(this.pitch());
+						if (!goodPitch) {
 							this.strikes = 0;
 							this.balls = 0;							
 							this.calc();
 							this.renderCurrent(0, 1);
-							this.nextBatter();
-							//console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);							
-						} else if (badPitch === 1) {
+							this.nextBatter();					
+						} else if (goodPitch === 1) {
 							this.balls++;
 							this.renderCurrent(1);
 							if (this.balls > 3) {
-								this.balls = 0;
-								this.strikes++;
-								this.renderCurrent(0);
-								setTimeout(() => {
-									this.renderCurrent(1);
+								this.strikes = 0;
+								setTimeout(() => {									
+									this.balls = 0;
+									this.calc(goodPitch);
+									this.renderCurrent(0, 1);
+									this.nextBatter();
 								}, 300);
 							}
 						} else {
@@ -261,38 +291,33 @@
 								this.renderCurrent(0, 1);
 								if (this.outs < 3) {
 									this.nextBatter();
-									//console.log('next guy', this[this.team].starters[this[this.team].batterIndex].name);
 								}
 							}, 200);							
 						}
 						if (this.outs > 2) {
 							if (this.team === 'home') {
 								this.team = 'visitor';
-								setTimeout(() => {
-									this.outs = 0;
-									this.renderCurrent(2);
-									this.renderField();
-								}, 300);
-								setTimeout(() => {
-									this.nextPitcher();
-									this.nextBatter();
-									this.start();
-								}, 600);
 							} else {
 								this.team = 'home';
-								this.outs = 0;
-								setTimeout(() => {
-									this.renderCurrent(2);
-								}, 300);
 								this.inning++;
-								setTimeout(() => {
-									this.nextPitcher();
-									this.nextBatter();
-									this.start();
-								}, 600);
 							}
+							setTimeout(() => {
+								this.outs = 0;
+								this.renderCurrent(2);
+								for (let i = this.base.length; i--;) {
+									this.base[i] = 0;
+								}
+								this.renderField();
+							}, 300);
+							setTimeout(() => {
+								this.nextPitcher();
+								this.nextBatter();
+								this.start();
+							}, 600);							
 						} else {
 							setTimeout(() => {
+								this.status = 'Game in progress...'; 
+								this.renderPlayers();
 								this.start();
 							}, 300);						
 						}
@@ -300,16 +325,21 @@
 						this.renderHighlightWinner();
 					}
 				}
+				renderHome() {
+					document.getElementById(`base-3`).style.backgroundColor = '#9ff';
+					setTimeout(() => {
+						document.getElementById(`base-3`).style.backgroundColor = '';
+						if (this.animList.length) {
+							this.animList.pop();
+							this.renderHome();
+						}
+					}, 500);				
+				}
 				renderField() {
 					const max = this.base.length;
 					
 					for (let i = 0; i < max; i++) {
-						if (this.base[i] && i === 3) {
-							document.getElementById(`base-${i}`).style.backgroundColor = '#9ff';
-							setTimeout(() => {
-								document.getElementById(`base-${i}`).style.backgroundColor = '';
-							}, 300);
-						} else if (this.base[i]) {
+						if (this.base[i]) {
 							document.getElementById(`base-${i}`).style.backgroundColor = 'orange';
 						} else {
 							document.getElementById(`base-${i}`).style.backgroundColor = '';
@@ -462,6 +492,10 @@
 								break;
 							case 2:
 								$container.getElementsByClassName('cell statusValue')[0].style.color = '#9ff';
+								$container.getElementsByClassName('cell statusValue')[0].innerHTML = this.status;
+								break;
+							default:
+								$container.getElementsByClassName('cell statusValue')[0].style.color = '#fff';
 								$container.getElementsByClassName('cell statusValue')[0].innerHTML = this.status;
 						}
 				
