@@ -457,8 +457,8 @@
 						$container.insertAdjacentHTML('beforeend', tpl);
 					}
 				}
-				renderCurrent() {		
-					if (document.getElementById('current').getElementsByClassName('col').length) {
+				renderCurrent(cond) {		
+					if (cond !== -1) {
 						const list = ['strikes', 'balls', 'outs'];
 						for (let i = arguments.length; i--;) {
 							//console.log(arguments[i]);
@@ -482,7 +482,7 @@
 					}
 				}
 				renderPlayers(cond) {		
-					if (this.sb.length) {
+					if (cond !== -1) {
 						const $container = document.getElementsByClassName('grid')[0];
 						
 						let pitchingTeam = 'home';
@@ -570,8 +570,8 @@
 								this.animList = [];
 								this.renderScoreboard();
 								this.renderTotal();
-								this.renderCurrent();
-								this.renderPlayers();
+								this.renderCurrent(-1);
+								this.renderPlayers(-1);
 								this.start();
 								break;
 							default:
@@ -582,13 +582,13 @@
 				init() {
 					this.renderScoreboard();
 					this.renderTotal();
-					this.renderCurrent();
-					this.renderPlayers();
+					this.renderCurrent(-1);
+					this.renderPlayers(-1);
 					this.events();
 					this.start();
 				}
 			}
-			new Baseball(nyy, sf);
+			new Baseball(nyy, sf, location.search ? parseInt(location.search.substring(1), 10) : 100);
 		</script>
 	</body>
 </html>
