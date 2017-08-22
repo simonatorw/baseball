@@ -12,27 +12,30 @@
 				display: flex;
 				justify-content: center;
 				align-items: center;
-				height: 90vh;
+				height: 93vh;
 				margin: 0;
 			}
 			#container {
-				display: inline-flex;
-				flex-flow: column wrap;
+				display: flex;
+				flex: 0;
+				flex-flow: row wrap;
 				background-color: #390;
 				border-radius: 6px;
 				padding: 20px;
-				align-items: center;
+				justify-content: center;
 			}
 			.board {
 				background-color: darkgreen;
-				display: inline-flex;
+				display: flex;
+				flex: 0 0 100%;
 				padding: 6px 0 0 6px;
 				font-size: 1.2em;
+				box-sizing: border-box;
 			}
 			#current {
-				width: 100%;
-				box-sizing: border-box;
 				justify-content: space-between;
+				flex: 0 0 100%;
+				display: flex;
 			}
 			#homeTeam, #visitorTeam, .head, .currentLabel {
 				color: lightgreen;
@@ -82,11 +85,11 @@
 				color: #000;
 			}
 			.col {
-				display: inline-flex;
-				flex: 0;
+				display: flex;
 			}
 			#players {
-				width: 100%;
+				flex: 0 0 100%;
+				display: flex;
 				margin-top: 10px;
 			}
 			.grid {
@@ -126,7 +129,7 @@
 		<script src="teams.js"></script>
 		<script>
 			class Baseball {
-				constructor(home, visitor) {
+				constructor(home, visitor, multiplier = 100) {
 					this.sb = [];
 					this.home = {
 						totals: [0, 0, 0],
@@ -150,6 +153,7 @@
 					this.status = 'Game started...';
 					this.base = [0, 0, 0];
 					this.animList = [];
+					this.multiplier = multiplier;
 					this.init();
 				}
 				setScore(score) {
@@ -181,21 +185,20 @@
 				pitch() {
 					return Math.floor(Math.random() * 6);
 				}
-				bat(badPitch) {
+				bat(goodPitch) {
 					const result = Math.round(Math.random() * 1000)/1000;
-					let name = this[this.team].starters[this[this.team].batterIndex].name;
 					
-					if (result < this[this.team].starters[this[this.team].batterIndex].ba && !badPitch) {
+					if (result < this[this.team].starters[this[this.team].batterIndex].ba && !goodPitch) {
 			
-						return badPitch;
-					} else if (!badPitch) {
+						return goodPitch;
+					} else if (!goodPitch) {
 						return 1;
 					} else {
-						return badPitch;
+						return goodPitch;
 					}
 				}
 				isOver() {
-					return this.inning > 8 && this.home.totals[0] !== this.visitor.totals[0];
+					return (this.inning > 8 && this.home.totals[0] !== this.visitor.totals[0]) || (this.inning >= 8 && this.home.totals[0] < this.visitor.totals[0] && this.team === 'visitor');
 				}
 				nextBatter() {
 					if (this[this.team].batterIndex < this[this.team].starters.length - 1) {
@@ -234,6 +237,13 @@
 						this.renderPlayers(2);				
 						this.goHome();
 					} else {
+						if (walk) {
+							this.status = 'Walk.';						
+						} else {
+							this.status = 'Base hit!'; 
+						}
+						this.renderPlayers();
+						
 						let hit = 0;
 						
 						if (!walk) {
@@ -276,7 +286,7 @@
 									this.calc(goodPitch);
 									this.renderCurrent(0, 1);
 									this.nextBatter();
-								}, 300);
+								}, 3 * this.multiplier);
 							}
 						} else {
 							this.strikes++;
@@ -292,7 +302,7 @@
 								if (this.outs < 3) {
 									this.nextBatter();
 								}
-							}, 200);							
+							}, 2 * this.multiplier);							
 						}
 						if (this.outs > 2) {
 							if (this.team === 'home') {
@@ -308,18 +318,18 @@
 									this.base[i] = 0;
 								}
 								this.renderField();
-							}, 300);
+							}, 3 * this.multiplier);
 							setTimeout(() => {
 								this.nextPitcher();
 								this.nextBatter();
 								this.start();
-							}, 600);							
+							}, 6 * this.multiplier);							
 						} else {
 							setTimeout(() => {
 								this.status = 'Game in progress...'; 
 								this.renderPlayers();
 								this.start();
-							}, 300);						
+							}, 3 * this.multiplier);						
 						}
 					} else {
 						this.renderHighlightWinner();
@@ -333,7 +343,7 @@
 							this.animList.pop();
 							this.renderHome();
 						}
-					}, 500);				
+					}, 5 * this.multiplier);				
 				}
 				renderField() {
 					const max = this.base.length;
@@ -519,16 +529,66 @@
 						
 						$container.innerHTML = tpl;
 					}
-				}								
+				}					
+				events() {
+					document.addEventListener('keypress', (e) => {
+						//console.log(e.keyCode);
+						switch(e.keyCode) {
+							case 49:
+								this.multiplier = 10;
+								break;
+							case 51:
+								this.multiplier = 300;
+								break;
+							case 13:
+								const children = document.getElementById('scoreboard').childNodes;
+								for (let i = children.length; i--;) {
+									document.getElementById('scoreboard').removeChild(children[i]);
+								}
+								this.sb = [];
+								this.home = {
+									totals: [0, 0, 0],
+									batterIndex: 0
+								};
+								this.home = Object.assign({}, this.home, nyy);
+								this.visitor = {
+									totals: [0, 0, 0],
+									batterIndex: -1
+								};
+								this.visitor = Object.assign({}, this.visitor, sf);
+								this.balls = 0;
+								this.strikes = 0;
+								this.outs = 0;
+								this.team = 'home';
+								this.inning = 0;
+								this.totalCol = 0;
+								this.prevClass = '';
+								this.prevInning = 0;
+								this.prevTeam = 'visitor';
+								this.status = 'Game started...';
+								this.base = [0, 0, 0];
+								this.animList = [];
+								this.renderScoreboard();
+								this.renderTotal();
+								this.renderCurrent();
+								this.renderPlayers();
+								this.start();
+								break;
+							default:
+								this.multiplier = 100;
+						}
+					}, true);
+				}
 				init() {
 					this.renderScoreboard();
 					this.renderTotal();
 					this.renderCurrent();
 					this.renderPlayers();
+					this.events();
 					this.start();
 				}
 			}
-			new Baseball(nny, sf);
+			new Baseball(nyy, sf);
 		</script>
 	</body>
 </html>

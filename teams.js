@@ -1,4 +1,4 @@
-const nny = {
+const nyy = {
 	team: 'NYY',
 	longName: 'New York Yankees',
 	color: 'black',
