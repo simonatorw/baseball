@@ -128,6 +128,8 @@
 		</section>
 		<script src="teams.js"></script>
 		<script>
+			let home = nyy, visitor = sf, teamBool = true;
+			
 			class Baseball {
 				constructor(home, visitor, multiplier = 100) {
 					this.sb = [];
@@ -529,53 +531,84 @@
 						
 						$container.innerHTML = tpl;
 					}
-				}					
+				}
+				setTeam(team) {
+					if (teamBool) {
+						home = team;
+						document.getElementById('homeTeam').innerHTML = home.team;
+						document.getElementById('homeTeam').setAttribute('style', `color: ${home.color}`);
+					} else {
+						visitor = team;
+						document.getElementById('visitorTeam').innerHTML = visitor.team;
+						document.getElementById('visitorTeam').setAttribute('style', `color: ${visitor.color}`);
+					}
+					teamBool = !teamBool;				
+				}
 				events() {
 					document.addEventListener('keypress', (e) => {
 						//console.log(e.keyCode);
+						const $container = document.getElementById('totals');
 						switch(e.keyCode) {
 							case 49:
 								this.multiplier = 10;
 								break;
+							case 50:
+								this.multiplier = 100;
+								break;								
 							case 51:
 								this.multiplier = 300;
-								break;
-							case 13:
-								const children = document.getElementById('scoreboard').childNodes;
-								for (let i = children.length; i--;) {
-									document.getElementById('scoreboard').removeChild(children[i]);
-								}
-								this.sb = [];
-								this.home = {
-									totals: [0, 0, 0],
-									batterIndex: 0
-								};
-								this.home = Object.assign({}, this.home, nyy);
-								this.visitor = {
-									totals: [0, 0, 0],
-									batterIndex: -1
-								};
-								this.visitor = Object.assign({}, this.visitor, sf);
-								this.balls = 0;
-								this.strikes = 0;
-								this.outs = 0;
-								this.team = 'home';
-								this.inning = 0;
-								this.totalCol = 0;
-								this.prevClass = '';
-								this.prevInning = 0;
-								this.prevTeam = 'visitor';
-								this.status = 'Game started...';
-								this.base = [0, 0, 0];
-								this.animList = [];
-								this.renderScoreboard();
-								this.renderTotal();
-								this.renderCurrent(-1);
-								this.renderPlayers(-1);
-								this.start();
-								break;
-							default:
-								this.multiplier = 100;
+						}
+						if ($container.getElementsByClassName('winner').length) {
+							switch(e.keyCode) {
+								case 98:
+									this.setTeam(bos);
+									break;
+								case 109:
+									this.setTeam(nym);
+									break;
+								case 111:
+									this.setTeam(oak);
+									break;									
+								case 115:
+									this.setTeam(sf);
+									break;								
+								case 121:
+									this.setTeam(nyy);
+									break;
+								case 13:
+									const children = document.getElementById('scoreboard').childNodes;
+									for (let i = children.length; i--;) {
+										document.getElementById('scoreboard').removeChild(children[i]);
+									}
+									this.sb = [];
+									this.home = {
+										totals: [0, 0, 0],
+										batterIndex: 0
+									};
+									this.home = Object.assign({}, this.home, home);
+									this.visitor = {
+										totals: [0, 0, 0],
+										batterIndex: -1
+									};
+									this.visitor = Object.assign({}, this.visitor, visitor);
+									this.balls = 0;
+									this.strikes = 0;
+									this.outs = 0;
+									this.team = 'home';
+									this.inning = 0;
+									this.totalCol = 0;
+									this.prevClass = '';
+									this.prevInning = 0;
+									this.prevTeam = 'visitor';
+									this.status = 'Game started...';
+									this.base = [0, 0, 0];
+									this.animList = [];
+									this.renderScoreboard();
+									this.renderTotal();
+									this.renderCurrent(-1);
+									this.renderPlayers(-1);
+									this.start();
+							}
 						}
 					}, true);
 				}
@@ -588,7 +621,7 @@
 					this.start();
 				}
 			}
-			new Baseball(nyy, sf, location.search ? parseInt(location.search.substring(1), 10) : 100);
+			new Baseball(home, visitor, location.search ? parseInt(location.search.substring(1), 10) : 100);
 		</script>
 	</body>
 </html>
